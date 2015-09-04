@@ -1,0 +1,362 @@
+#!/bin/bash
+#
+# Start, stop, pack, unpack and bootstrap minecraft servers
+#
+
+serversdir="/home/dan/mineman_test"
+cd $serversdir
+
+function err {
+  >&2 echo "$@"
+}
+
+function usage {
+  err "Usage: mineman start|stop|store|unstore|bootstrap"
+  exit 1
+}
+
+function quickrun {
+  
+  function usage {
+    err "Usage: mineman quickrun [-s]
+
+Optional flags:
+
+    -s              supress messages"
+}
+
+  while [ $# -ge 1 ]
+  do
+    case $1 in
+      -s)
+        silent=true
+        ;;
+      *)
+        usage
+        ;;
+    esac
+    shift
+  done
+
+  function startup_done {
+    tmux capture-pane -t $name-bootstrap |
+      sed '/^$/d' |
+        tail -n 1 |
+          egrep '[Server thread/INFO]: Done ([0-9\.]*s)! For help, type "help" or "?"'
+  }
+
+  [ -z $silent ] && echo -n "Running server"
+  tmux send-keys -t $name-bootstrap "./runserver; exit" Enter
+
+  while ! startup_done; do
+     [ -z $silent ] && echo -n '.'
+  done
+  [ -z $silent ] && echo '.'
+  [ -z $silent ] && echo 'Success! Stopping server.'
+}
+
+function start {
+
+  function usage {
+    err "Usage: mineman start name"
+    exit 1
+  }
+
+  name=$1
+  if [ -z $name ]
+  then
+    usage
+  fi
+
+  shift
+  while [ $# -ge 1 ]; do
+    case $1 in
+      *)
+        usage
+        ;;
+    esac
+    shift
+  done
+
+  ramdir=/dev/shm/$name/
+  minedir=$serversdir/$name/
+  diskdir=$minedir/diskcopy/world/
+   
+  if [ ! -d $minedir ]
+  then
+    err "Couldn't find $minedir. Wrong server name?"
+    exit 1
+  fi
+
+  echo "Setting up environment..."
+
+  mkdir -p $ramdir
+    
+  cd $minedir
+  if [ ! -d $diskdir ]
+  then
+    mkdir -p $diskdir
+  fi
+  
+  echo "Syncing worldfile to ramdisk..."
+
+  mkdir -p $ramdir/world
+  rsync -a $diskdir $ramdir/world/
+  
+  echo "Starting server..."
+
+  tmux new-session -d -s $name
+  # We runserver then exit, so that stop works more smoothly.
+  tmux send-keys -t $name "./runserver; exit" Enter
+
+  echo "Done."
+}
+
+function stop {
+
+  function usage {
+    err "Usage: mineman stop name"
+    exit 1
+  }
+
+  name=$1
+  if [ -z $name ]
+  then
+      usage
+  fi
+
+  shift
+  while [ $# -ge 1 ]; do
+    case $1 in
+      *)
+        usage
+        ;;
+    esac
+    shift
+  done
+
+  if ! tmux list-sessions | grep "^$name:"
+  then
+    err "No tmux session $name"
+    exit 1
+  fi
+
+  echo -n "Stopping minecraft server"
+  tmux send-keys -t $name "stop" Enter
+  while tmux list-sessions | grep "^$name:"; do
+    echo -n '.'
+  done
+  echo '.'
+  echo "Done"
+ 
+}
+
+function store {
+
+  function usage {
+    err "Usage: mineman store name [-f] [-r]
+
+Optional flags:
+
+    -f              force storage even if the server is running
+    -r              remove server directory when done"
+    exit 1
+  }
+
+  name=$1
+  if [ -z $name ]
+  then
+    usage
+  fi
+
+  shift
+  while [ $# -ge 1 ]; do
+    case $1 in
+      -f)
+        force=true
+        ;;
+      -r)
+        remove=true
+        ;;
+      *)
+        usage
+        ;;
+    esac
+    shift
+  done
+
+  minedir=$serversdir/$name/
+  storedir=$serversdir/stores/
+  store=$storedir${name}.tar.bz2
+
+  if [ ! -d $minedir ]
+  then
+    err "Couldn't find $minedir. Wrong server name?"
+    exit 1
+  fi
+
+  if tmux list-sessions | grep "^$name:" && [ -z $force ]
+  then
+    err "Server is running! Please stop it before storing."
+    exit 1
+  fi 
+
+  server_todisk
+
+  cd $serversdir 
+  mkdir -p $storedir 
+
+  tar cvpjf $store $minedir
+
+  if [ $? == 0 ] && [ -z remove ]
+  then
+    rm -r $minedir
+  fi 
+}
+
+function unstore {
+
+  function usage {
+    err "Usage: mineman unstore name [-r]
+
+Optional flags:
+
+    -r              remove server directory when done"
+    exit 1
+  }
+
+  name=$1
+  if [ -z $name ]
+  then
+    usage
+  fi
+
+  shift
+  while [ $# -ge 1 ]; do
+    case $1 in
+      -r)
+        remove=true
+        ;;
+      *)
+        usage
+        ;;
+    esac
+    shift
+  done
+
+  minedir=$serversdir/$name/
+  storedir=$serversdir/stores/
+  store=$storedir${name}.tar.bz2
+
+  if [ ! -f $store ]
+  then
+    err "Couldn't find $store. Wrong server name?"
+    exit 1
+  fi
+
+  cd $serversdir 
+
+  tar xvf $store
+
+  if [ $? == 0 ] && [ -z remove ]
+  then
+    rm $store
+  fi 
+}
+
+function bootstrap {
+
+  function usage {
+    err "Usage: mineman bootstrap name
+
+Optional flags:
+
+    -o player        make player an op"
+    exit 1
+  }
+
+  name=$1
+  if [ -z $name ]
+  then
+    usage
+  fi
+
+  shift
+  while [ $# -ge 1 ]; do
+    case $1 in
+      *)
+        usage
+        ;;
+    esac
+    shift
+  done
+
+  minedir=$serversdir/$name/
+
+  if [ ! -d $minedir ]
+  then
+      err "Could not find directory ${minedir}.
+Please create a directory for the server you want to bootstrap, and
+populate it with a server.jar file."
+      exit 1
+  fi 
+
+  if [ ! -f ${minedir}server.jar ]
+  then
+      err "Could not find server jarfile ${minedir}server.jar."
+      if [ -f ${minedir}*.jar ]
+      then
+          err "It looks like there's a jarfile in $minedir.
+In order to bootstrap the server, you'll have to symlink it (or rename
+it) to server.jar."
+      fi
+      exit 1
+  fi
+
+  cd $minedir
+
+  echo "Setting up server..."
+
+  echo "#!/bin/bash
+
+java -jar -Xmx4G -Xms1G server.jar" > runserver
+  chmod 744 runserver
+    
+  tmux new-session -d -s $name-bootstrap
+  quickrun
+ 
+  diskdir=$minedir/diskcopy/
+  echo "Moving world to $diskdir."
+  mkdir -p $diskdir
+  mv ./world $diskdir/world
+
+  ramdir=/dev/shm/$name/world/
+  echo "Creating symlink to ramdisk."
+  ln -s $ramdir
+}
+
+case "$1" in 
+  start)
+    shift
+    start $@
+    ;;
+  stop)
+    shift
+    stop $@ 
+    ;;
+  store)
+    shift
+    store $@
+    ;;
+  unstore)
+    shift
+    unstore $@ 
+    ;;
+  bootstrap)
+    shift
+    bootstrap $@ 
+    ;;
+  *)
+    usage  
+    ;;
+esac

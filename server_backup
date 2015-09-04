@@ -1,0 +1,24 @@
+#!/bin/bash
+minedir=/home/minecraft
+cd $minedir
+
+date=$(date +%Y-%m-%d-%H%M%S)
+
+world=world
+
+backupdir=backup
+# Copy world to world_static subdirectory, from which I can tar without
+# edits being made to the world (to avoid corruption).
+tar_from=world_static
+mkdir -p $minedir/$backupdir/$tar_from || exit 1
+
+rsync -Lav $minedir/$world/ $minedir/$backupdir/$tar_from/$world/
+
+cd $minedir/$backupdir/$tar_from/
+
+tar cvjpf $minedir/$backupdir/$date.tar.bz2 $world/
+
+# Clear up old backups and world_static:
+
+rm -r $minedir/$backupdir/$tar_from/
+/home/server_utils/delete_old_backups.sh

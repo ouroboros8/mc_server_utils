@@ -1,0 +1,15 @@
+#!/bin/bash
+
+minedir=/home/minecraft/
+world=world
+diskdir=diskcopy
+
+rsync -Lav $minedir/$world/ $minedir/$diskdir/$world/
+
+## Echo time to file todisk.last. Another script prints the contents of this file periodically.
+
+lastfile=todisk.last
+
+enddate=$(date +%Y.%m.%d-%H:%M:%S)
+
+echo "Last save to disk: $enddate" > $lastfile

@@ -1,0 +1,25 @@
+#!/bin/bash
+BINDIR=$(dirname "$(readlink -fn "$0")")
+cd $BINDIR
+
+## Check whether tmux session for the server exists:
+if ! tmux list-sessions | grep 'vanilla'
+then
+    echo "Sever not running! Stopping."
+    exit 1
+fi
+
+#tmux send-keys -t minecraft 'say Saving...' Enter
+
+#tmux send-keys -t minecraft 'say done.' Enter
+
+lastfile_todisk=todisk.last
+lastfile_backup=backup.last
+
+tmux send-keys -t vanilla "say Server status:" Enter
+
+tmux send-keys -t vanilla "say $(cat $lastfile_todisk)" Enter
+
+tmux send-keys -t vanilla "say $(cat $lastfile_backup)" Enter
+
+#tmux send-keys -t minecraft "say End message." Enter
