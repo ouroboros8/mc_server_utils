@@ -23,7 +23,7 @@ function quickrun {
 Optional flags:
 
     -s              supress messages"
-}
+  }
 
   while [ $# -ge 1 ]
   do
@@ -53,6 +53,15 @@ Optional flags:
   done
   [ -z $silent ] && echo '.'
   [ -z $silent ] && echo 'Success! Stopping server.'
+}
+
+function regen {
+  function usage {
+    err "Usage: mineman regen [-y]
+
+Optional flags:
+    -y              bypass \"Are you sure?\" message"
+  }
 }
 
 function start {
