@@ -25,7 +25,7 @@ function startup_done {
     err "Problem capturing output from tmux server. The server may have crashed or shutdown prematurely."
     exit 1
   fi
-  echo "$pane" | sed '/^$/d' | tail -n 1 |
+  echo "$pane"|
     egrep '^\[[0-9\:]*\] \[Server thread/INFO\]: Done \([0-9\.]*s\)\! For help, type "help" or "\?"' > /dev/null
 }
 
