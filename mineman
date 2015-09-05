@@ -39,10 +39,10 @@ Optional flags:
   done
 
   function startup_done {
-    tmux capture-pane -t $name-bootstrap |
+    tmux capture-pane -p -t $name-bootstrap |
       sed '/^$/d' |
         tail -n 1 |
-          egrep '[Server thread/INFO]: Done ([0-9\.]*s)! For help, type "help" or "?"'
+          egrep '^\[[0-9\:]*\] \[Server thread/INFO\]: Done \([0-9\.]*s\)\! For help, type "help" or "\?"'
   }
 
   [ -z $silent ] && echo -n "Running server"
