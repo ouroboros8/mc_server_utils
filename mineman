@@ -340,6 +340,7 @@ java -jar -Xmx4G -Xms1G server.jar" > runserver
   chmod 744 runserver
     
   tmux new-session -d -s $name-bootstrap
+  echo "eula=true" > eula.txt
   quickrun
  
   diskdir=$minedir/diskcopy/
