@@ -42,7 +42,7 @@ Optional flags:
     tmux capture-pane -p -t $name-bootstrap |
       sed '/^$/d' |
         tail -n 1 |
-          egrep '^\[[0-9\:]*\] \[Server thread/INFO\]: Done \([0-9\.]*s\)\! For help, type "help" or "\?"'
+          egrep '^\[[0-9\:]*\] \[Server thread/INFO\]: Done \([0-9\.]*s\)\! For help, type "help" or "\?"' > /dev/null
   }
 
   [ -z $silent ] && echo -n "Running server"
