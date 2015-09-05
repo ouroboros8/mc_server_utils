@@ -60,7 +60,7 @@ Optional flags:
   done
   unset i
   [ -z $silent ] && echo '.'
-  [ -z $silent ] && echo 'Success! Stopping server.'
+  [ -z $silent ] && echo 'Success! Server stopped.'
 }
 
 function regen {
