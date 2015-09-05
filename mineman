@@ -7,14 +7,17 @@ serversdir="/home/minecraft/"
 ellipsis=1000
 cd $serversdir
 
+
 function err {
   >&2 echo "$@"
 }
+
 
 function usage {
   err "Usage: mineman start|stop|store|unstore|bootstrap"
   exit 1
 }
+
 
 function quickrun {
   
@@ -24,6 +27,13 @@ function quickrun {
 Optional flags:
 
     -s              supress messages"
+  }
+
+  function startup_done {
+    tmux capture-pane -p -t $name |
+      sed '/^$/d' |
+        tail -n 1 |
+          egrep '^\[[0-9\:]*\] \[Server thread/INFO\]: Done \([0-9\.]*s\)\! For help, type "help" or "\?"' > /dev/null
   }
 
   while [ $# -ge 1 ]
@@ -39,15 +49,9 @@ Optional flags:
     shift
   done
 
-  function startup_done {
-    tmux capture-pane -p -t $name |
-      sed '/^$/d' |
-        tail -n 1 |
-          egrep '^\[[0-9\:]*\] \[Server thread/INFO\]: Done \([0-9\.]*s\)\! For help, type "help" or "\?"' > /dev/null
-  }
-
   name="${name}-quickrun"
   [ -z $silent ] && echo -n "Running server"
+  tmux new-session -d -s $name
   tmux send-keys -t $name "./runserver; exit" Enter
 
   i=0
@@ -65,6 +69,7 @@ Optional flags:
   [ -z $silent ] && echo 'Success!'
 
   [ -z $silent ] && echo 'Stopping server'
+  tmux send-keys -r $name "stop" Enter
   i=0
   while tmux list-sessions | grep "^$name:"; do
     if [ $i == $ellipsis ]; then
@@ -73,17 +78,17 @@ Optional flags:
       let "i=$i+1"
     fi 
   done
-  [ -z $silent ] && echo 'Stopping server'
 }
 
-function regen {
-  function usage {
-    err "Usage: mineman regen [-y]
 
-Optional flags:
-    -y              bypass \"Are you sure?\" message"
-  }
-}
+#function regen {
+  #function usage {
+    #err "Usage: mineman regen [-y]
+
+#Optional flags:
+    #-y              bypass \"Are you sure?\" message"
+  #}
+#}
 
 function start {
 
