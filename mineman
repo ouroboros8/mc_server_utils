@@ -4,7 +4,7 @@
 #
 
 serversdir="/home/minecraft/"
-ellipsis=500
+ellipsis=100
 cd $serversdir
 
 
