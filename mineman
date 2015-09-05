@@ -31,12 +31,12 @@ Optional flags:
 
   function startup_done {
     pane=$(tmux capture-pane -p -t $name)
-    if [ $? != 1 ]; then
-      err "Problem capturing output from tmux server. The server may have crashed or shutdwn prematurely."
+    if [ $? != 0 ]; then
+      err "Problem capturing output from tmux server. The server may have crashed or shutdown prematurely."
       exit 1
     fi
-    lastline=$(echo $pane | sed '/^$/d' | tail -n 1)
-    echo $lastline | egrep '^\[[0-9\:]*\] \[Server thread/INFO\]: Done \([0-9\.]*s\)\! For help, type "help" or "\?"' > /dev/null
+    echo "$pane" | sed '/^$/d' | tail -n 1 |
+      egrep '^\[[0-9\:]*\] \[Server thread/INFO\]: Done \([0-9\.]*s\)\! For help, type "help" or "\?"' > /dev/null
   }
 
   while [ $# -ge 1 ]
@@ -59,28 +59,30 @@ Optional flags:
 
   i=0
   while ! startup_done; do
-      if [ $i == $ellipsis ]
-      then
-          i=0
-          [ -z $silent ] && echo -n '.'
-      else
-          let "i=$i+1"
-      fi
+    if [ $i == $ellipsis ]; then
+      i=0
+      [ -z $silent ] && echo -n '.'
+    else
+      let "i=$i+1"
+    fi
   done
   unset i
   [ -z $silent ] && echo '.'
-  [ -z $silent ] && echo 'Success!'
+  [ -z $silent ] && echo 'Done.'
 
   [ -z $silent ] && echo 'Stopping server'
-  tmux send-keys -r $name "stop" Enter
+  tmux send-keys -t $name "stop" Enter
   i=0
-  while tmux list-sessions | grep "^$name:"; do
+  while tmux list-sessions | grep "^$name:" >/dev/null; do
     if [ $i == $ellipsis ]; then
+      i=0
       [ -z $silent ] && echo -n '.'
     else
       let "i=$i+1"
     fi 
   done
+  [ -z $silent ] && echo '.'
+  [ -z $silent ] && echo 'Done.'
 }
 
 
@@ -96,7 +98,11 @@ Optional flags:
 function start {
 
   function usage {
-    err "Usage: mineman start name"
+    err "Usage: mineman start name -p
+    
+Optional flags:
+
+    -p              allow tmux session to persist after the server shuts down."
     exit 1
   }
 
@@ -109,6 +115,9 @@ function start {
   shift
   while [ $# -ge 1 ]; do
     case $1 in
+      -p)
+        persist=true
+        ;;
       *)
         usage
         ;;
@@ -145,7 +154,9 @@ function start {
 
   tmux new-session -d -s $name
   # We runserver then exit, so that stop works more smoothly.
-  tmux send-keys -t $name "./runserver; exit" Enter
+  startcommand="./runserver"
+  [ -z $persist ] && startcommand="${startcommand}; echo $? > exit_status.log; exit"
+  tmux send-keys -t $name "$startcommand" Enter
 
   echo "Done."
 }
@@ -375,6 +386,7 @@ java -jar -Xmx4G -Xms1G server.jar" > runserver
 
   ramdir=/dev/shm/$name/world/
   echo "Creating symlink to ramdisk."
+  mkdir -p $ramdir
   ln -s $ramdir
 }
 
