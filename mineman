@@ -73,7 +73,7 @@ Optional flags:
   [ -z $silent ] && echo 'Stopping server'
   tmux send-keys -t $name "stop" Enter
   i=0
-  while tmux list-sessions | grep "^$name:" >/dev/null; do
+  while tmux list-sessions | grep "^$name:" 2>&1 >/dev/null; do
     if [ $i == $ellipsis ]; then
       i=0
       [ -z $silent ] && echo -n '.'
