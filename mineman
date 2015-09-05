@@ -48,9 +48,17 @@ Optional flags:
   [ -z $silent ] && echo -n "Running server"
   tmux send-keys -t $name-bootstrap "./runserver; exit" Enter
 
+  i=0
   while ! startup_done; do
-     [ -z $silent ] && echo -n '.'
+      if [ $i == 100 ]
+      then
+          i=0
+          [ -z $silent ] && echo -n '.'
+      else
+          i=$i+1
+      fi
   done
+  unset i
   [ -z $silent ] && echo '.'
   [ -z $silent ] && echo 'Success! Stopping server.'
 }
