@@ -74,7 +74,7 @@ Optional flags:
   [ -z $silent ] && echo 'Stopping server'
   tmux send-keys -t $name "stop" Enter
   i=0
-  while tmux list-sessions | grep "^$name:" 2>&1 >/dev/null; do
+  while tmux list-sessions 2>/dev/null | grep "^$name:" &>/dev/null; do
     if [ $i == $ellipsis ]; then
       i=0
       [ -z $silent ] && echo -n '.'
@@ -136,7 +136,7 @@ Optional flags:
     exit 1
   fi
 
-  if tmux list-sessions | grep "^$name:" && [ -z $force ]
+  if tmux list-sessions 2>/dev/null | grep "^$name:" &> /dev/null
   then
     err "Server is already running!"
     exit 1
@@ -199,7 +199,7 @@ function stop {
     shift
   done
 
-  if ! tmux list-sessions | grep "^$name:"
+  if ! tmux list-sessions 2>/dev/null | grep "^$name:" &>/dev/null
   then
     err "No tmux session $name"
     exit 1
@@ -208,8 +208,9 @@ function stop {
   echo -n "Stopping minecraft server"
   tmux send-keys -t $name "stop" Enter
   i=0
-  while tmux list-sessions | grep "^$name:"; do
+  while tmux list-sessions 2>&/dev/null | grep "^$name:" &>/dev/null; do
     if [ $i == $ellipsis ]; then
+      i=0  
       echo -n '.'
     else
       let "i=$i+1"
@@ -264,7 +265,7 @@ Optional flags:
     exit 1
   fi
 
-  if tmux list-sessions | grep "^$name:" && [ -z $force ]
+  if tmux list-sessions 2>/dev/null | grep "^$name:" && [ -z $force ]
   then
     err "Server is running! Please stop it before storing."
     exit 1
