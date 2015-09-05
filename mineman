@@ -46,7 +46,7 @@ Optional flags:
           egrep '^\[[0-9\:]*\] \[Server thread/INFO\]: Done \([0-9\.]*s\)\! For help, type "help" or "\?"' > /dev/null
   }
 
-  $name="$name-quickrun"
+  $name="${name}-quickrun"
   [ -z $silent ] && echo -n "Running server"
   tmux send-keys -t $name "./runserver; exit" Enter
 
