@@ -40,14 +40,15 @@ Optional flags:
   done
 
   function startup_done {
-    tmux capture-pane -p -t $name-bootstrap |
+    tmux capture-pane -p -t $name |
       sed '/^$/d' |
         tail -n 1 |
           egrep '^\[[0-9\:]*\] \[Server thread/INFO\]: Done \([0-9\.]*s\)\! For help, type "help" or "\?"' > /dev/null
   }
 
+  $name=$name-quickrun
   [ -z $silent ] && echo -n "Running server"
-  tmux send-keys -t $name-bootstrap "./runserver; exit" Enter
+  tmux send-keys -t $name "./runserver; exit" Enter
 
   i=0
   while ! startup_done; do
@@ -72,6 +73,7 @@ Optional flags:
       let "i=$i+1"
     fi 
   done
+  [ -z $silent ] && echo 'Stopping server'
 }
 
 function regen {
