@@ -127,7 +127,7 @@ Optional flags:
 
   ramdir=/dev/shm/$name/
   minedir=$serversdir/$name/
-  diskdir=$minedir/diskcopy/world/
+  diskdir=$minedir/diskcopy/
    
   if [ ! -d $minedir ]
   then
@@ -325,7 +325,11 @@ function bootstrap {
 
 Optional flags:
 
-    -o player        make player an op"
+    -o player       make player an op (unimplemented)
+    -f              force bootstrapping, even if the directory already
+                    contains a diskcopy subdirectory. WARNING: this will
+                    overwrite the contents of the diskcopy subdirectory,
+                    and might do other unexpected things!"
     exit 1
   }
 
@@ -338,6 +342,9 @@ Optional flags:
   shift
   while [ $# -ge 1 ]; do
     case $1 in
+      -f)
+        force=true
+        ;;
       *)
         usage
         ;;
@@ -368,6 +375,15 @@ it) to server.jar."
   fi
 
   cd $minedir
+  diskdir=$minedir/diskcopy/
+
+  if [ -d $diskdir ] && [ -z $force ]; then
+    err "$minedir already contains a diskcopy directory. Aborting."
+    err "If you're sure you want to overwrite $name's existing
+worldfiles, rerun this command with the -f flag. Note that
+this is NOT RECOMMENDED."
+    exit 1
+  fi
 
   echo "Setting up server..."
 
@@ -378,16 +394,29 @@ java -jar -Xmx4G -Xms1G server.jar" > runserver
     
   echo "eula=true" > eula.txt
   quickrun
- 
-  diskdir=$minedir/diskcopy/
-  echo "Moving world to $diskdir."
-  mkdir -p $diskdir
-  mv ./world $diskdir/world
 
-  ramdir=/dev/shm/$name/world/
-  echo "Creating symlink to ramdisk."
-  mkdir -p $ramdir
-  ln -s $ramdir
+  mkdir -p $diskdir || err "Couldn't create $diskdir" && exit 1
+
+  echo "Syncing world to $diskdir."
+  rsync -a $minedir/world/ $diskdir
+  if [ $? != 0 ]; then
+    err "Could not move ${minedir}world to $diskdir"
+    exit 1
+  fi 
+
+  if [ -d $minedir/world ]; then
+    echo "Removing directory ${minedir}world" 
+    rm -rf $minedir/world
+  fi
+
+  if [ -L $minedir/world ]; then
+    echo "Symlink at ${minedir}world already exists, skipping..."    
+  else
+    ramdir=/dev/shm/$name/world/
+    echo "Creating symlink to ramdisk."
+    mkdir -p $ramdir
+    ln -s $ramdir
+  fi
 }
 
 case "$1" in 
