@@ -3,7 +3,7 @@
 # Start, stop, pack, unpack and bootstrap minecraft servers
 #
 
-serversdir="/home/dan/mineman_test"
+serversdir="/home/minecraft/"
 cd $serversdir
 
 function err {
