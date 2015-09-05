@@ -4,6 +4,7 @@
 #
 
 serversdir="/home/minecraft/"
+ellipsis=1000
 cd $serversdir
 
 function err {
@@ -50,17 +51,27 @@ Optional flags:
 
   i=0
   while ! startup_done; do
-      if [ $i == 100 ]
+      if [ $i == $ellipsis ]
       then
           i=0
           [ -z $silent ] && echo -n '.'
       else
-          i=$i+1
+          let "i=$i+1"
       fi
   done
   unset i
   [ -z $silent ] && echo '.'
-  [ -z $silent ] && echo 'Success! Server stopped.'
+  [ -z $silent ] && echo 'Success!'
+
+  [ -z $silent ] && echo 'Stopping server'
+  i=0
+  while tmux list-sessions | grep "^$name:"; do
+    if [ $i == $ellipsis ]; then
+      [ -z $silent ] && echo -n '.'
+    else
+      let "i=$i+1"
+    fi 
+  done
 }
 
 function regen {
@@ -160,8 +171,13 @@ function stop {
 
   echo -n "Stopping minecraft server"
   tmux send-keys -t $name "stop" Enter
+  i=0
   while tmux list-sessions | grep "^$name:"; do
-    echo -n '.'
+    if [ $i == $ellipsis ]; then
+      echo -n '.'
+    else
+      let "i=$i+1"
+  fi
   done
   echo '.'
   echo "Done"
