@@ -19,6 +19,17 @@ function usage {
 }
 
 
+function startup_done {
+  pane=$(tmux capture-pane -p -t $name)
+  if [ $? != 0 ]; then
+    err "Problem capturing output from tmux server. The server may have crashed or shutdown prematurely."
+    exit 1
+  fi
+  echo "$pane" | sed '/^$/d' | tail -n 1 |
+    egrep '^\[[0-9\:]*\] \[Server thread/INFO\]: Done \([0-9\.]*s\)\! For help, type "help" or "\?"' > /dev/null
+}
+
+
 function quickrun {
   
   function usage {
@@ -27,16 +38,6 @@ function quickrun {
 Optional flags:
 
     -s              supress messages"
-  }
-
-  function startup_done {
-    pane=$(tmux capture-pane -p -t $name)
-    if [ $? != 0 ]; then
-      err "Problem capturing output from tmux server. The server may have crashed or shutdown prematurely."
-      exit 1
-    fi
-    echo "$pane" | sed '/^$/d' | tail -n 1 |
-      egrep '^\[[0-9\:]*\] \[Server thread/INFO\]: Done \([0-9\.]*s\)\! For help, type "help" or "\?"' > /dev/null
   }
 
   while [ $# -ge 1 ]
@@ -135,6 +136,12 @@ Optional flags:
     exit 1
   fi
 
+  if tmux list-sessions | grep "^$name:" && [ -z $force ]
+  then
+    err "Server is already running!"
+    exit 1
+  fi 
+
   echo "Setting up environment..."
 
   mkdir -p $ramdir
@@ -150,15 +157,23 @@ Optional flags:
   mkdir -p $ramdir/world
   rsync -a $diskdir $ramdir/world/
   
-  echo "Starting server..."
-
   tmux new-session -d -s $name
-  # We runserver then exit, so that stop works more smoothly.
+  # By default, runserver then exit, so that stop works more smoothly.
   startcommand="./runserver"
   [ -z $persist ] && startcommand="${startcommand}; echo $? > exit_status.log; exit"
-  tmux send-keys -t $name "$startcommand" Enter
 
-  echo "Done."
+  echo -n "Starting server"
+  tmux send-keys -t $name "$startcommand" Enter
+  i=0
+  while ! startup_done; do
+      if [ $i == $ellipsis ]; then
+          i=0
+          echo -n '.'
+      fi
+      let "i=$i+1"
+  done
+  echo '.'
+  echo 'Done.'
 }
 
 function stop {
