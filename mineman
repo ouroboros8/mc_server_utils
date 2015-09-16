@@ -33,7 +33,9 @@ function startup_done {
 function quickrun {
   
   function usage {
-    err "Usage: mineman quickrun [-s]
+    err "Usage: mineman quickrun [-s] NAME
+
+    NAME            name of server to quickrun
 
 Optional flags:
 
@@ -47,11 +49,20 @@ Optional flags:
         silent=true
         ;;
       *)
-        usage
+        if [ $# -eq 1 ]; then
+            name=$1
+        else
+            usage
+        fi
         ;;
     esac
     shift
   done
+
+  if [ -z $name ]
+  then
+    usage
+  fi
 
   name="${name}-quickrun"
   [ -z $silent ] && echo -n "Running server"
@@ -99,7 +110,9 @@ Optional flags:
 function start {
 
   function usage {
-    err "Usage: mineman start name -p
+    err "Usage: mineman start -p NAME
+
+    NAME            name of server to start
     
 Optional flags:
 
@@ -107,24 +120,26 @@ Optional flags:
     exit 1
   }
 
-  name=$1
-  if [ -z $name ]
-  then
-    usage
-  fi
-
-  shift
   while [ $# -ge 1 ]; do
     case $1 in
       -p)
         persist=true
         ;;
       *)
-        usage
+        if [ $# -eq 1 ]; then
+            name=$1
+        else
+            usage
+        fi
         ;;
     esac
     shift
   done
+
+  if [ -z $name ]
+  then
+    usage
+  fi
 
   ramdir=/dev/shm/$name/
   minedir=$serversdir/$name/
@@ -179,25 +194,29 @@ Optional flags:
 function stop {
 
   function usage {
-    err "Usage: mineman stop name"
+    err "Usage: mineman stop NAME
+    
+    NAME            name of server to stop"
     exit 1
   }
 
-  name=$1
-  if [ -z $name ]
-  then
-      usage
-  fi
-
-  shift
   while [ $# -ge 1 ]; do
     case $1 in
       *)
-        usage
+        if [ $# -eq 1 ]; then
+            name=$1
+        else
+            usage
+        fi
         ;;
     esac
     shift
   done
+
+  if [ -z $name ]
+  then
+      usage
+  fi
 
   if ! tmux list-sessions 2>/dev/null | grep "^$name:" &>/dev/null
   then
@@ -224,7 +243,9 @@ function stop {
 function store {
 
   function usage {
-    err "Usage: mineman store name [-f] [-r]
+    err "Usage: mineman store [-f] [-r] NAME
+
+    NAME            name of server to store
 
 Optional flags:
 
@@ -233,13 +254,6 @@ Optional flags:
     exit 1
   }
 
-  name=$1
-  if [ -z $name ]
-  then
-    usage
-  fi
-
-  shift
   while [ $# -ge 1 ]; do
     case $1 in
       -f)
@@ -249,11 +263,20 @@ Optional flags:
         remove=true
         ;;
       *)
-        usage
+        if [ $# -eq 1 ]; then
+            name=$1
+        else
+            usage
+        fi
         ;;
     esac
     shift
   done
+
+  if [ -z $name ]
+  then
+    usage
+  fi
 
   minedir=$serversdir/$name/
   storedir=$serversdir/stores/
@@ -287,7 +310,7 @@ Optional flags:
 function unstore {
 
   function usage {
-    err "Usage: mineman unstore name [-r]
+    err "Usage: mineman unstore [-r] NAME
 
 Optional flags:
 
@@ -295,24 +318,26 @@ Optional flags:
     exit 1
   }
 
-  name=$1
-  if [ -z $name ]
-  then
-    usage
-  fi
-
-  shift
   while [ $# -ge 1 ]; do
     case $1 in
       -r)
         remove=true
         ;;
       *)
-        usage
+        if [ $# -eq 1 ]; then
+            name=$1
+        else
+            usage
+        fi
         ;;
     esac
     shift
   done
+
+  if [ -z $name ]
+  then
+    usage
+  fi
 
   minedir=$serversdir/$name/
   storedir=$serversdir/stores/
@@ -337,7 +362,9 @@ Optional flags:
 function bootstrap {
 
   function usage {
-    err "Usage: mineman bootstrap name
+    err "Usage: mineman bootstrap [-o] [-f] NAME
+
+    NAME            name of server to bootstrap
 
 Optional flags:
 
@@ -349,24 +376,26 @@ Optional flags:
     exit 1
   }
 
-  name=$1
-  if [ -z $name ]
-  then
-    usage
-  fi
-
-  shift
   while [ $# -ge 1 ]; do
     case $1 in
       -f)
         force=true
         ;;
       *)
-        usage
+        if [ $# -eq 1]; then
+            name=$1
+        else
+            usage
+        fi
         ;;
     esac
     shift
   done
+
+  if [ -z $name ]
+  then
+    usage
+  fi
 
   minedir=$serversdir/$name/
 
