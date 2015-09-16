@@ -97,7 +97,6 @@ Optional flags:
   [ -z $silent ] && echo 'Done.'
 }
 
-
 #function regen {
   #function usage {
     #err "Usage: mineman regen [-y]
@@ -106,6 +105,106 @@ Optional flags:
     #-y              bypass \"Are you sure?\" message"
   #}
 #}
+
+function save {
+
+  function usage {
+    err "Usage: mineman save NAME
+
+Save server to drive.
+
+    NAME            name of server to backup"
+
+    exit 1
+  }
+
+  while [ $# -ge 1 ]; do
+    case $1 in
+      *)
+        if [ $# -eq 1 ]; then
+            name=$1
+        else
+            usage
+        fi
+        ;;
+    esac
+    shift
+  done
+
+  if [ -z $name ]
+  then
+    usage
+  fi
+
+  ramdir=/dev/shm/$name/
+  minedir=$serversdir/$name/
+  diskdir=$minedir/diskcopy/
+
+  rsync -Lav $minedir/$name/world/ $diskdir/
+
+  lastfile=$minedir/todisk.last
+
+  enddate=$(date +%Y.%m.%d-%H:%M:%S)
+
+  echo "Last save to disk: $enddate" > $lastfile
+
+}
+
+function backup {
+
+  function usage {
+    err "Usage: mineman backup number daily|weekly|monthly NAME
+
+    number          number of backups to keep
+    daily           saves backup to 'daily' subdirectory
+    weekly          saves backup to 'weekly' subdirectory
+    monthly         saves backup to 'monthly' subdirectory
+    NAME            name of server to backup"
+
+    exit 1
+  }
+
+  while [ $# -ge 1 ]; do
+    case $1 in
+      *)
+        if [ $# -eq 3 ]; then
+            number=$1
+        elif [ $# -eq 2 ]; then
+            frequency=$1
+        elif [ $# -eq 1 ]; then
+            name=$1
+        else
+            usage
+        fi
+        ;;
+    esac
+    shift
+  done
+
+  if [ -z $name ] || [ -z $number ] || [ -z $frequency ]; then
+    usage
+  fi
+
+minedir=$serversdir/$name/
+
+date=$(date +%Y-%m-%d-%H%M%S)
+
+backupdir=$serversdir/backups/$name/$frequency/
+
+# Copy world to world_static subdirectory, from which we can tar without
+# edits being made to the worldfiles.
+tar_from=static-copy
+mkdir -p $backupdir/$tar_from
+
+rsync -Lav $minedir/world/ $backupdir/$tar_from/world/
+
+cd $backupdir/$tar_from/
+
+tar cvjpf $backupdir/$date.tar.bz2 $world/
+
+rm $(ls -t | tail -n +$number)
+
+}
 
 function start {
 
