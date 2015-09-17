@@ -153,12 +153,11 @@ Save server to drive.
 function backup {
 
   function usage {
-    err "Usage: mineman backup number daily|weekly|monthly NAME
+    err "Usage: mineman backup number category NAME
 
     number          number of backups to keep
-    daily           saves backup to 'daily' subdirectory
-    weekly          saves backup to 'weekly' subdirectory
-    monthly         saves backup to 'monthly' subdirectory
+    category        name of backup category; this determines the name of the
+                    subdirectory the backup is saved to. eg. 'daily', 'monthly'
     NAME            name of server to backup"
 
     exit 1
