@@ -140,7 +140,7 @@ Save server to drive.
   minedir=$serversdir/$name/
   diskdir=$minedir/diskcopy/
 
-  rsync -Lav $minedir/$name/world/ $diskdir/
+  rsync -Lav $minedir/world/ $diskdir/
 
   lastfile=$minedir/todisk.last
 
@@ -196,13 +196,17 @@ backupdir=$serversdir/backups/$name/$frequency/
 tar_from=static-copy
 mkdir -p $backupdir/$tar_from
 
-rsync -Lav $minedir/world/ $backupdir/$tar_from/world/
+rsync -Lav $minedir/world/ $backupdir/$tar_from/world/ &>/dev/null
 
 cd $backupdir/$tar_from/
 
-tar cvjpf $backupdir/$date.tar.bz2 $world/
+tar cvjpf $backupdir/$date.tar.bz2 world/ &>/dev/null
 
-rm $(ls -t | tail -n +$number)
+cd $backupdir
+oldfiles="$(ls -t | egrep '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}\.tar\.bz2' | tail -n +$(expr $number + 1))"
+if ! [ -z $oldfiles ]; then
+    rm $oldfiles
+fi
 
 }
 
@@ -481,7 +485,7 @@ Optional flags:
         force=true
         ;;
       *)
-        if [ $# -eq 1]; then
+        if [ $# -eq 1 ]; then
             name=$1
         else
             usage
@@ -501,8 +505,7 @@ Optional flags:
   if [ ! -d $minedir ]
   then
       err "Could not find directory ${minedir}.
-Please create a directory for the server you want to bootstrap, and
-populate it with a server.jar file."
+Please create a directory for the server you want to bootstrap, and populate it with a server.jar file."
       exit 1
   fi 
 
@@ -512,8 +515,7 @@ populate it with a server.jar file."
       if [ -f ${minedir}*.jar ]
       then
           err "It looks like there's a jarfile in $minedir.
-In order to bootstrap the server, you'll have to symlink it (or rename
-it) to server.jar."
+In order to bootstrap the server, you'll have to symlink it (or rename it) to server.jar."
       fi
       exit 1
   fi
@@ -523,9 +525,8 @@ it) to server.jar."
 
   if [ -d $diskdir ] && [ -z $force ]; then
     err "$minedir already contains a diskcopy directory. Aborting."
-    err "If you're sure you want to overwrite $name's existing
-worldfiles, rerun this command with the -f flag. Note that
-this is NOT RECOMMENDED."
+    err "If you're sure you want to overwrite $name's existing worldfiles, rerun this command with the -f flag.
+This is NOT RECOMMENDED."
     exit 1
   fi
 
@@ -535,11 +536,15 @@ this is NOT RECOMMENDED."
 
 java -jar -Xmx4G -Xms1G server.jar" > runserver
   chmod 744 runserver
-    
+
   echo "eula=true" > eula.txt
   quickrun
 
-  mkdir -p $diskdir || err "Couldn't create $diskdir" && exit 1
+  mkdir -p $diskdir
+  if ! [ $? -eq 0 ]; then
+      err "Couldn't create $diskdir. Exiting."
+      exit 1
+  fi
 
   echo "Syncing world to $diskdir."
   rsync -a $minedir/world/ $diskdir
@@ -549,7 +554,7 @@ java -jar -Xmx4G -Xms1G server.jar" > runserver
   fi 
 
   if [ -d $minedir/world ]; then
-    echo "Removing directory ${minedir}world" 
+    echo "Removing directory ${minedir}world"
     rm -rf $minedir/world
   fi
 
@@ -557,7 +562,7 @@ java -jar -Xmx4G -Xms1G server.jar" > runserver
     echo "Symlink at ${minedir}world already exists, skipping..."    
   else
     ramdir=/dev/shm/$name/world/
-    echo "Creating symlink to ramdisk."
+    echo "Creating symlink to ramdisk"
     mkdir -p $ramdir
     ln -s $ramdir
   fi
@@ -583,6 +588,14 @@ case "$1" in
   bootstrap)
     shift
     bootstrap $@ 
+    ;;
+  save)
+    shift
+    save $@ 
+    ;;
+  backup)
+    shift
+    backup $@ 
     ;;
   *)
     usage  
