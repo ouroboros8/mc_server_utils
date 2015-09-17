@@ -140,7 +140,7 @@ Save server to drive.
   minedir=$serversdir/$name/
   diskdir=$minedir/diskcopy/
 
-  rsync -Lav $minedir/world/ $diskdir/
+  rsync -Lav --delete $minedir/world/ $diskdir/
 
   lastfile=$minedir/todisk.last
 
@@ -196,7 +196,7 @@ backupdir=$serversdir/backups/$name/$frequency/
 tar_from=static-copy
 mkdir -p $backupdir/$tar_from
 
-rsync -Lav $minedir/world/ $backupdir/$tar_from/world/ &>/dev/null
+rsync -Lav --delete $minedir/world/ $backupdir/$tar_from/world/ &>/dev/null
 
 cd $backupdir/$tar_from/
 
@@ -273,7 +273,7 @@ Optional flags:
   echo "Syncing worldfile to ramdisk..."
 
   mkdir -p $ramdir/world
-  rsync -a $diskdir $ramdir/world/
+  rsync -Lav --delete $diskdir $ramdir/world/
   
   tmux new-session -d -s $name
   # By default, runserver then exit, so that stop works more smoothly.
@@ -547,7 +547,7 @@ java -jar -Xmx4G -Xms1G server.jar" > runserver
   fi
 
   echo "Syncing world to $diskdir."
-  rsync -a $minedir/world/ $diskdir
+  rsync -Lav --delete $minedir/world/ $diskdir
   if [ $? != 0 ]; then
     err "Could not move ${minedir}world to $diskdir"
     exit 1
